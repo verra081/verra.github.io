@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>見通しボード｜お金・時間・扶養をひとつに</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1f2a24;--sub:#66736b;--line:#e2e6e1;--ok:#2f9e6b;--warn:#d9962a;--bad:#d9534f;--acc:#2f7d6b;--sh:#2f9e6b;--tk:#3b7dd8;--ev:#d9962a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141916;--card:#1e2520;--ink:#eaf0ec;--sub:#9aa89f;--line:#303a33;--acc:#5fc2a8;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.55}
+main{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:18px;margin:2px 0}h2{font-size:15px;margin:0 0 8px}
+.sub,.note{color:var(--sub);font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.sig{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sig div{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--ok);border-radius:12px;padding:10px}
+.sig span{font-size:12px;color:var(--sub)}.sig b{display:block;font-size:16px}.sig small{font-size:11px;color:var(--sub)}
+.warn{border-top-color:var(--warn)!important}.bad{border-top-color:var(--bad)!important}
+.ans{background:var(--acc);color:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+.ans b{font-size:26px}.ans p{margin:4px 0 0;font-size:13px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px;cursor:pointer}
+button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.nav button{padding:4px 12px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px}
+.cal .h{text-align:center;color:var(--sub)}
+.cal .c{min-height:54px;border:1px solid var(--line);border-radius:8px;padding:2px 3px;cursor:pointer;overflow:hidden}
+.cal .c.sel{outline:2px solid var(--acc)}.cal .c.t{background:var(--bg)}
+.cal i{display:block;font-style:normal;font-size:10px;line-height:1.3;border-radius:3px;padding:0 2px;margin-top:1px;color:#fff;white-space:nowrap;overflow:hidden}
+.i-shift{background:var(--sh)}.i-task{background:var(--tk)}.i-ev{background:var(--ev)}
+.wk{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}
+.wk .b{flex:1;height:12px;background:var(--line);border-radius:6px;overflow:hidden}.wk .b i{display:block;height:100%;background:var(--ok)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+input,select{width:100%;font:inherit;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+label{font-size:12px;color:var(--sub);display:block;margin-top:6px}
+ul{list-style:none;padding:0;margin:6px 0 0;font-size:13px}
+li{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
+li button{padding:1px 8px;font-size:12px}
+textarea{width:100%;min-height:88px;font:inherit;font-size:13px;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.tabs button{padding:5px 9px;font-size:12px}.tabs .on{background:var(--acc);color:#fff;border-color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<h1>見通しボード</h1>
+<p class="sub">予定を1回入れるだけで、お金・時間・扶養が同時に更新されます。</p>
+
+<div class="sig" id="sig"></div>
+<div class="ans" id="ans"></div>
+
+<section class="card">
+  <div class="nav"><button id="prev">◀</button><h2 id="mt" style="margin:0"></h2><button id="next">▶</button></div>
+  <div class="cal" id="cal"></div>
+  <p class="note"><span style="color:var(--sh)">■</span>バイト　<span style="color:var(--tk)">■</span>課題・勉強　<span style="color:var(--ev)">■</span>予定（サークル・遊び）</p>
+</section>
+
+<section class="card">
+  <h2>週ごとの「自由に使える時間」</h2>
+  <div id="wks"></div>
+  <p class="note">1週間168時間 − 睡眠 − 食事・移動等(1日3h) − 授業 − 入れた予定。20時間を下回ると赤です。</p>
+</section>
+
+<section class="card">
+  <h2 id="selT"></h2>
+  <div class="row" style="grid-template-columns:repeat(4,1fr)">
+    <button data-q="3">バイト+3h</button><button data-q="4">+4h</button><button data-q="5">+5h</button><button data-q="8">+8h</button>
+  </div>
+  <div class="row"><select id="ty"><option value="shift">バイト</option><option value="task">課題・勉強</option><option value="ev">予定</option></select>
+  <input id="hr" type="number" step="0.5" placeholder="時間(h)"></div>
+  <div class="row"><input id="tt" placeholder="メモ（例: レポート締切）"><button class="p" id="add">追加</button></div>
+  <ul id="dl"></ul>
+</section>
+
+<section class="card">
+  <h2>もし週○時間バイトを増やしたら？</h2>
+  <input id="sim" type="number" step="0.5" value="4">
+  <p id="simR" style="font-size:14px;margin:8px 0 0"></p>
+</section>
+
+<section class="card">
+  <h2>言いにくいことの言い方</h2>
+  <div class="tabs" id="tabs"><button data-t="shop" class="on">シフトを減らしたい</button><button data-t="parent">親に共有</button><button data-t="extra">急な追加を断る</button></div>
+  <textarea id="tpl" readonly></textarea>
+  <button class="p" id="copy" style="width:100%;margin-top:6px">コピーする</button>
+</section>
+
+<section class="card">
+  <h2>最初に一度だけ設定</h2>
+  <div class="row"><div><label>時給(円)</label><input data-k="wage" type="number"></div><div><label>目標の壁</label>
+  <select data-k="wall"><option value="1230000">123万 所得税</option><option value="1300000">130万 健保の扶養</option><option value="1500000">150万 親の控除</option><option value="1880000">188万 親の控除ゼロ</option></select></div></div>
+  <div class="row"><div><label>今年のここまでの収入(円)</label><input data-k="base" type="number"></div><div><label>安全マージン(%)</label><input data-k="margin" type="number"></div></div>
+  <div class="row"><div><label>月の固定費(円)</label><input data-k="fixed" type="number"></div><div><label>月の変動費(円)</label><input data-k="vari" type="number"></div></div>
+  <div class="row"><div><label>仕送り等(円/月)</label><input data-k="allow" type="number"></div><div><label>授業(時間/週)</label><input data-k="cls" type="number"></div></div>
+  <div class="row"><div><label>睡眠(時間/日)</label><input data-k="sleep" type="number" step="0.5"></div><div><label>&nbsp;</label><button id="reset">予定を全消去</button></div></div>
+  <p class="note">壁の金額は制度改正で変わります。大学・バイト先・親の勤務先の健保で最新条件を確認してください。収入は給料の支払い月で数えます。あくまで目安です。</p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+let S={wage:1200,wall:1300000,base:0,margin:10,fixed:60000,vari:30000,allow:0,cls:15,sleep:7,ev:[],tab:"shop"};
+try{const r=localStorage.getItem("mitoshi");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const now=new Date();let view=new Date(now.getFullYear(),now.getMonth(),1);
+let sel=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate());
+const yen=n=>(n<0?"-":"")+"¥"+Math.abs(Math.round(n)).toLocaleString();
+const NM={shift:"バ",task:"課",ev:"予"};
+function calc(){
+  const y=view.getFullYear(),m=view.getMonth(),pm=y+"-"+pad(m+1);
+  const sum=f=>S.ev.filter(f).reduce((a,e)=>a+e.h,0);
+  const mSh=sum(e=>e.t==="shift"&&e.d.startsWith(pm));
+  const bal=mSh*S.wage+S.allow-S.fixed-S.vari;
+  const earned=S.base+sum(e=>e.t==="shift"&&e.d.startsWith(y+"-"))*S.wage;
+  const limit=S.wall*(1-S.margin/100);
+  const hLeft=Math.max(0,(limit-earned)/S.wage);
+  const wLeft=Math.max(1,(new Date(now.getFullYear(),11,31)-now)/6048e5);
+  const fz=hLeft/wLeft;
+  const fd=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),rows=Math.ceil((fd+days)/7);
+  const load=Array(rows).fill(0);
+  S.ev.filter(e=>e.d.startsWith(pm)).forEach(e=>{load[Math.floor((fd+ +e.d.slice(8)-1)/7)]+=e.h});
+  const free=load.map(l=>168-S.sleep*7-21-S.cls-l);
+  const avg=free.reduce((a,b)=>a+b,0)/rows,minF=Math.min(...free);
+  const safe=Math.max(0,Math.floor(Math.min(fz,avg-20)*2)/2);
+  return{y,m,bal,earned,limit,hLeft,fz,free,avg,minF,safe,mSh,rows,fd,days,ratio:earned/limit};
+}
+function cls(ok,w){return ok?"":w?"warn":"bad"}
+function render(){
+  const c=calc();
+  $("mt").textContent=c.y+"年"+(c.m+1)+"月";
+  const sg=[["お金（今月の収支）",yen(c.bal),c.bal>=0?"黒字":"赤字",c.bal>=0?"":c.bal>-10000?"warn":"bad"],
+   ["時間（最も忙しい週）","自由 "+Math.round(c.minF)+"h",c.minF>=35?"余裕あり":c.minF>=20?"ややきつい":"詰まり気味",c.minF>=35?"":c.minF>=20?"warn":"bad"],
+   ["扶養（今年）",Math.round(c.ratio*100)+"%","あと"+Math.round(c.hLeft)+"時間",c.ratio<.85?"":c.ratio<1?"warn":"bad"]];
+  $("sig").innerHTML=sg.map(s=>`<div class="${s[3]}"><span>${s[0]}</span><b>${s[1]}</b><small>${s[2]}</small></div>`).join("");
+  const why=c.fz<=c.avg-20?"扶養の上限がいちばん効いています":"時間の余裕がいちばん効いています";
+  $("ans").innerHTML=`<span style="font-size:12px">いま安全に入れられるバイトは</span><br><b>週 ${c.safe} 時間まで</b><p>${why}。扶養からは週${c.fz.toFixed(1)}h、時間からは週${Math.max(0,c.avg-20).toFixed(1)}hまでが目安です。</p>`;
+  let h=["月","火","水","木","金","土","日"].map(d=>`<div class="h">${d}</div>`).join("");
+  for(let i=0;i<c.fd;i++)h+="<div></div>";
+  for(let d=1;d<=c.days;d++){
+    const k=c.y+"-"+pad(c.m+1)+"-"+pad(d);
+    const it=S.ev.filter(e=>e.d===k).slice(0,3).map(e=>`<i class="i-${e.t}">${NM[e.t]}${e.h}h</i>`).join("");
+    const t=(k===now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate()))?" t":"";
+    h+=`<div class="c${k===sel?" sel":""}${t}" data-d="${k}">${d}${it}</div>`;
+  }
+  $("cal").innerHTML=h;
+  $("wks").innerHTML=c.free.map((f,i)=>`<div class="wk"><span style="width:44px">第${i+1}週</span><div class="b"><i style="width:${Math.max(0,Math.min(100,f/80*100))}%;background:${f<20?"var(--bad)":f<35?"var(--warn)":"var(--ok)"}"></i></div><b>${Math.round(f)}h</b></div>`).join("");
+  $("selT").textContent=sel.slice(5).replace("-","/")+" の予定";
+  $("dl").innerHTML=S.ev.filter(e=>e.d===sel).map(e=>`<li><span>${{shift:"バイト",task:"課題",ev:"予定"}[e.t]} ${e.h}h ${e.m||""}</span><button data-del="${e.id}">消す</button></li>`).join("")||'<li class="note">この日はまだ空です</li>';
+  const s=parseFloat($("sim").value)||0,wl=Math.max(1,(new Date(now.getFullYear(),11,31)-now)/6048e5);
+  const proj=c.earned+s*S.wage*wl,okF=proj<=c.limit,okT=c.avg-s>=20,gain=s*S.wage*4.3;
+  $("simR").innerHTML=`年末の収入見込み <b>${yen(proj)}</b>（${okF?"壁の内側":"<span style='color:var(--bad)'>壁を超えます</span>"}）／月の収入 <b>+${yen(gain)}</b>／週の自由時間 <b>${Math.round(c.avg-s)}h</b>（${okT?"確保できる":"<span style='color:var(--bad)'>20hを下回る</span>"}）`;
+  const w=Math.round(S.wall/1e4);
+  const T={shop:`お疲れさまです。相談があります。扶養の都合で今年の収入を${w}万円以内に抑える必要があり、年末まで週${c.safe}時間程度にしたいです。ご迷惑をおかけして申し訳ありませんが、調整をお願いできますか。繁忙期に入れる日があれば先に教えてください。`,
+   parent:`今年のバイト収入の共有です。現在の見込みは${yen(c.earned)}（目標${w}万円）で、あと約${Math.round(c.hLeft)}時間働けます。週${c.safe}時間くらいで調整します。扶養の条件で気になる点があれば一緒に確認させてください。`,
+   extra:`声をかけてもらってありがとうございます。力になりたいのですが、扶養と学業の都合で今月は上限があり、追加は難しいです。来月以降なら調整できるかもしれないので、また相談させてください。`};
+  $("tpl").value=T[S.tab];
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===S.tab));
+  document.querySelectorAll("[data-k]").forEach(i=>{if(document.activeElement!==i)i.value=S[i.dataset.k]});
+  try{localStorage.setItem("mitoshi",JSON.stringify(S))}catch(e){}
+}
+function add(t,h,m){h=parseFloat(h);if(!(h>0))return;S.ev.push({id:Date.now()+Math.random(),d:sel,t,h,m});render()}
+$("cal").onclick=e=>{const d=e.target.closest("[data-d]");if(d){sel=d.dataset.d;render()}};
+document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>add("shift",b.dataset.q,""));
+$("add").onclick=()=>{add($("ty").value,$("hr").value,$("tt").value);$("hr").value="";$("tt").value=""};
+$("dl").onclick=e=>{const i=e.target.dataset.del;if(i){S.ev=S.ev.filter(x=>String(x.id)!==i);render()}};
+$("prev").onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()-1,1);render()};
+$("next").onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()+1,1);render()};
+$("sim").oninput=render;
+$("tabs").onclick=e=>{if(e.target.dataset.t){S.tab=e.target.dataset.t;render()}};
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("tpl").value);$("copy").textContent="コピーしました"}catch(e){$("tpl").select()}setTimeout(()=>$("copy").textContent="コピーする",1600)};
+document.querySelectorAll("[data-k]").forEach(i=>i.onchange=()=>{S[i.dataset.k]=parseFloat(i.value)||0;render()});
+$("reset").onclick=()=>{if(confirm("予定を全部消しますか？")){S.ev=[];render()}};
+render();
+</script>
+</body>
+</html>
